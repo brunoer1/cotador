@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerador de Orçamento - Planos de Saúde</title>
+
+  <!-- Ícones FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    h1, h2 {
+      color: #0D6EFD;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0px 0px 15px rgba(0,0,0,0.1);
+    }
+
+    label, input, button {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    input[type="number"], input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .idade-list {
+      margin-top: 10px;
+    }
+
+    .idade-item {
+      background: #e9ecef;
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 20px;
+      margin: 5px;
+      font-size: 14px;
+    }
+
+    .idade-item button {
+      background: none;
+      border: none;
+      color: red;
+      margin-left: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .idade-item button i {
+      pointer-events: none;
+      font-size: 12px;
+    }
+
+    button {
+      background-color: #0D6EFD;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background-color: #0B5ED7;
+    }
+
+    .planos-toggle {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .plano-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      border: none;
+      color: white;
+    }
+
+    .plano-parcial {
+      background-color: #0D6EFD;
+    }
+
+    .plano-parcial.active {
+      background-color: #052c99;
+    }
+
+    .plano-total {
+      background-color: #198754;
+    }
+
+    .plano-total.active {
+      background-color: #0f5132;
+    }
+
+    hr {
+      width: 100%;
+      border: 0;
+      height: 2px;
+      background: #ccc;
+      margin: 20px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #0D6EFD;
+      color: white;
+    }
+
+    .tabelas-copart-container {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+
+    .tabela-copart {
+      flex: 1;
+      min-width: 300px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .tabela-copart table {
+      margin: 0;
+    }
+
+    .botoes-final {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Ajuste para impressão */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #orcamento, #orcamento * {
+        visibility: visible;
+      }
+      #orcamento {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>Gerador de Orçamento - Planos de Saúde</h1>
+
+  <label>Nome do Cliente:</label>
+  <input type="text" id="nomeCliente" placeholder="Digite o nome">
+
+  <label>Adicionar Idade:</label>
+  <input type="number" id="idadeInput" placeholder="Digite a idade">
+  <button onclick="adicionarIdade()">Adicionar Idade</button>
+
+  <div id="listaIdades" class="idade-list"></div>
+
+  <h2>Selecione os Planos:</h2>
+  <div class="planos-toggle" id="selecionarPlanos"></div>
+
+  <label>
+    <input type="checkbox" id="descontoCheckbox" onchange="toggleDesconto()"> Aplicar desconto temporário
+  </label>
+
+  <div id="configDesconto" class="hidden">
+    <label>Percentual de desconto (%):</label>
+    <input type="number" id="percentualDesconto" value="15">
+
+    <label>Meses de desconto:</label>
+    <input type="number" id="mesesDesconto" value="3">
+  </div>
+
+  <button onclick="gerarOrcamento()">Gerar Orçamento</button>
+
+  <div id="orcamento" class="hidden">
+    <h2>Orçamento Gerado</h2>
+    <div id="tabelaOrcamento"></div>
+
+    <div class="tabelas-copart-container">
+      <div id="copartParcial" class="tabela-copart hidden">
+        <h3>Coparticipação Parcial</h3>
+        <table>
+          <tr><th>Item</th><th>Valor</th></tr>
+          <tr><td>Consulta Eletiva</td><td>Isenta</td></tr>
+          <tr><td>Consulta de Urgência</td><td>Isenta</td></tr>
+          <tr><td>Exames Simples</td><td>Isenta</td></tr>
+          <tr><td>Exames Complexos</td><td>Isenta</td></tr>
+          <tr><td>Terapias Especiais</td><td>R$ 73,03</td></tr>
+          <tr><td>Demais Terapias</td><td>R$ 39,33</td></tr>
+        </table>
+      </div>
+
+      <div id="copartTotal" class="tabela-copart hidden">
+        <h3>Coparticipação Total</h3>
+        <table>
+          <tr><th>Item</th><th>Valor</th></tr>
+          <tr><td>Consulta Eletiva</td><td>R$ 40,39</td></tr>
+          <tr><td>Consulta de Urgência</td><td>R$ 57,24</td></tr>
+          <tr><td>Exames Simples</td><td>40% ou R$ 47,70</td></tr>
+          <tr><td>Exames Complexos</td><td>40% ou R$ 116,60</td></tr>
+          <tr><td>Terapias Especiais</td><td>R$ 73,03</td></tr>
+          <tr><td>Demais Terapias</td><td>R$ 39,33</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="botoes-final">
+      <button onclick="imprimirOrcamento()">Imprimir</button>
+      <button onclick="baixarPDF()">Gerar PDF</button>
+      <button onclick="limparTudo()">Limpar</button>
+    </div>
+  </div>
+
+</div> <!-- fecha container -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+<script>
+  const planosParcial = [
+    'Ambul. Sem Hospit. (Coparticipação Parcial)',
+    'Ambul. + Hospit. Enf. (Coparticipação Parcial)',
+    'Ambul. + Hospit. Apto (Coparticipação Parcial)',
+    'Ambul. + Hospit.+ Obst. Enf. (Coparticipação Parcial)',
+    'Ambul. + Hospit.+ Obst. Apto (Coparticipação Parcial)'
+  ];
+
+  const planosTotal = [
+    'Ambul. Sem Hospit. (Coparticipação Total)',
+    'Ambul. + Hospit. Enf. (Coparticipação Total)',
+    'Ambul. + Hospit. Apto (Coparticipação Total)',
+    'Ambul. + Hospit.+ Obst. Enf. (Coparticipação Total)',
+    'Ambul. + Hospit.+ Obst. Apto (Coparticipação Total)'
+  ];
+
+  const valoresPlanosParcial = {
+    'Ambul. Sem Hospit. (Coparticipação Parcial)': [142.12,186.83,212.83,237.30,249.68,280.18,342.39,474.48,639.25,829.91],
+    'Ambul. + Hospit. Enf. (Coparticipação Parcial)': [235.81,303.72,345.74,384.40,402.44,451.69,545.87,744.34,996.60,1288.50],
+    'Ambul. + Hospit. Apto (Coparticipação Parcial)': [341.95,443.83,506.87,564.86,591.92,665.80,807.09,1104.82,1483.25,1921.15],
+    'Ambul. + Hospit.+ Obst. Enf. (Coparticipação Parcial)': [254.28,328.10,373.78,415.80,435.41,488.95,591.33,807.07,1081.29,1398.60],
+    'Ambul. + Hospit.+ Obst. Apto (Coparticipação Parcial)': [369.64,480.38,548.90,611.94,641.36,721.67,875.25,1198.88,1610.23,2086.22]
+  };
+
+  const valoresPlanosTotal = {
+    'Ambul. Sem Hospit. (Coparticipação Total)': [106.08,139.15,158.38,176.48,185.64,208.20,254.21,351.91,473.78,614.80],
+    'Ambul. + Hospit. Enf. (Coparticipação Total)': [180.54,230.76,261.84,290.43,303.77,340.19,409.84,556.62,743.18,959.06],
+    'Ambul. + Hospit. Apto (Coparticipação Total)': [259.07,334.42,381.04,423.93,443.95,498.60,603.10,823.31,1103.21,1427.10],
+    'Ambul. + Hospit.+ Obst. Enf. (Coparticipação Total)': [194.23,248.83,282.62,313.70,328.21,367.81,443.54,603.12,805.96,1040.67],
+    'Ambul. + Hospit.+ Obst. Apto (Coparticipação Total)': [279.53,361.43,412.11,458.73,480.49,539.89,653.48,892.84,1197.08,1549.13]
+  };
+
+  let idades = [];
+
+  const selecionarPlanosDiv = document.getElementById('selecionarPlanos');
+
+  // Cria botões planos
+  planosParcial.forEach(plano => {
+    const btn = document.createElement('button');
+    btn.textContent = plano;
+    btn.className = 'plano-btn plano-parcial';
+    btn.onclick = () => btn.classList.toggle('active');
+    selecionarPlanosDiv.appendChild(btn);
+  });
+
+  const linha = document.createElement('hr');
+  selecionarPlanosDiv.appendChild(linha);
+
+  planosTotal.forEach(plano => {
+    const btn = document.createElement('button');
+    btn.textContent = plano;
+    btn.className = 'plano-btn plano-total';
+    btn.onclick = () => btn.classList.toggle('active');
+    selecionarPlanosDiv.appendChild(btn);
+  });
+
+  function adicionarIdade() {
+    const idade = parseInt(document.getElementById('idadeInput').value);
+    if (idade && !idades.includes(idade)) {
+      idades.push(idade);
+      atualizarIdades();
+    }
+    document.getElementById('idadeInput').value = '';
+  }
+
+  function atualizarIdades() {
+    const lista = document.getElementById('listaIdades');
+    lista.innerHTML = '';
+    idades.forEach((idade, index) => {
+      const item = document.createElement('div');
+      item.className = 'idade-item';
+      item.innerHTML = `${idade} anos <button onclick="removerIdade(${index})"><i class="fas fa-trash"></i></button>`;
+      lista.appendChild(item);
+    });
+  }
+
+  function removerIdade(index) {
+    idades.splice(index, 1);
+    atualizarIdades();
+  }
+
+  function toggleDesconto() {
+    document.getElementById('configDesconto').classList.toggle('hidden', !document.getElementById('descontoCheckbox').checked);
+  }
+
+  function getFaixaEtaria(idade) {
+    if (idade <= 18) return 0;
+    if (idade <= 23) return 1;
+    if (idade <= 28) return 2;
+    if (idade <= 33) return 3;
+    if (idade <= 38) return 4;
+    if (idade <= 43) return 5;
+    if (idade <= 48) return 6;
+    if (idade <= 53) return 7;
+    if (idade <= 58) return 8;
+    return 9;
+  }
+
+  function gerarOrcamento() {
+    if (!idades.length) {
+      alert("Adicione ao menos uma idade!");
+      return;
+    }
+
+    const nomeCliente = document.getElementById('nomeCliente').value;
+    const aplicarDesconto = document.getElementById('descontoCheckbox').checked;
+    const percentual = aplicarDesconto ? parseFloat(document.getElementById('percentualDesconto').value) : 0;
+
+    const planosSelecionados = Array.from(document.querySelectorAll('.plano-btn.active')).map(btn => btn.textContent);
+
+    if (!planosSelecionados.length) {
+      alert("Selecione pelo menos um plano!");
+      return;
+    }
+
+    const selecionouParcial = planosSelecionados.some(p => p.includes('Parcial'));
+    const selecionouTotal = planosSelecionados.some(p => p.includes('Total'));
+
+    document.getElementById('copartParcial').classList.toggle('hidden', !selecionouParcial);
+    document.getElementById('copartTotal').classList.toggle('hidden', !selecionouTotal);
+
+    let html = `<h3>Cliente: ${nomeCliente}</h3>`;
+    html += `<table><thead><tr><th>Idade</th>`;
+
+    planosSelecionados.forEach(plano => {
+      html += `<th>${plano}</th>`;
+    });
+
+    html += `</tr></thead><tbody>`;
+
+    let totalPorPlano = {};
+    let totalComDesconto = {};
+
+    idades.forEach(idade => {
+      html += `<tr><td>${idade} anos</td>`;
+      planosSelecionados.forEach(plano => {
+        const faixa = getFaixaEtaria(idade);
+        let valor = 0;
+
+        if (plano.includes('Parcial')) {
+          valor = valoresPlanosParcial[plano]?.[faixa] || 0;
+        } else if (plano.includes('Total')) {
+          valor = valoresPlanosTotal[plano]?.[faixa] || 0;
+        }
+
+        html += `<td>R$ ${valor.toFixed(2)}</td>`;
+        totalPorPlano[plano] = (totalPorPlano[plano] || 0) + valor;
+        if (aplicarDesconto) {
+          totalComDesconto[plano] = (totalComDesconto[plano] || 0) + valor * (1 - percentual / 100);
+        }
+      });
+      html += `</tr>`;
+    });
+
+    html += `<tr><td><strong>Taxa de Adesão</strong></td>`;
+    planosSelecionados.forEach(() => {
+      html += `<td>R$ 25,00</td>`;
+    });
+    html += `</tr>`;
+
+    html += `<tr><td><strong>Total</strong></td>`;
+    planosSelecionados.forEach(plano => {
+      html += `<td><strong>R$ ${(totalPorPlano[plano] + 25).toFixed(2)}</strong></td>`;
+    });
+    html += `</tr>`;
+
+    if (aplicarDesconto) {
+      html += `<tr><td><strong>Total c/ Desconto</strong></td>`;
+      planosSelecionados.forEach(plano => {
+        html += `<td><strong>R$ ${(totalComDesconto[plano] + 25).toFixed(2)}</strong></td>`;
+      });
+      html += `</tr>`;
+    }
+
+    html += `</tbody></table>`;
+
+    document.getElementById('tabelaOrcamento').innerHTML = html;
+    document.getElementById('orcamento').classList.remove('hidden');
+  }
+
+  function imprimirOrcamento() {
+    window.print();
+  }
+
+  function baixarPDF() {
+    const orcamento = document.getElementById('orcamento');
+    html2pdf().from(orcamento).set({
+      margin: 10,
+      filename: 'orcamento.pdf',
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).save();
+  }
+
+  function limparTudo() {
+    document.getElementById('nomeCliente').value = '';
+    document.getElementById('idadeInput').value = '';
+    idades = [];
+    atualizarIdades();
+    document.querySelectorAll('.plano-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('orcamento').classList.add('hidden');
+  }
+</script>
+</body>
+</html>
